@@ -95,14 +95,14 @@ async function loadManifest(){
 // ========== LAYER MANAGEMENT ==========
 async function addFile(file, group){
   if(active.has(file)) return;
-  const data = await fetchJSON(`Data/${file}`);
-  const type = detectGeom(data);
+  const Data = await fetchJSON(`Data/${file}`);
+  const type = detectGeom(Data);
   const sourceId = `src_${file}`;
   const color = colorFor(group);
 
   // cluster points
   const cluster = type==='point';
-  map.addSource(sourceId, { type:'geojson', data, ...(cluster ? {cluster:true, clusterRadius:36} : {}) });
+  map.addSource(sourceId, { type:'geojson', Data, ...(cluster ? {cluster:true, clusterRadius:36} : {}) });
 
   const ids = [];
   if(type==='point'){
@@ -133,7 +133,7 @@ async function addFile(file, group){
     new maplibregl.Popup().setLngLat(e.lngLat).setHTML(html).addTo(map);
   });
 
-  active.set(file, {source:sourceId, layers:ids, count:(data.features||[]).length, group});
+  active.set(file, {source:sourceId, layers:ids, count:(Data.features||[]).length, group});
   updateKPIs(); updateCharts(); fitToData();
 }
 
@@ -149,7 +149,7 @@ function fitToData(){
   const bounds = new maplibregl.LngLatBounds();
   let has=false;
   active.forEach(rec=>{
-    const d = map.getSource(rec.source)?._data || {};
+    const d = map.getSource(rec.source)?._Data || {};
     (d.features||[]).forEach(f=>{
       const g=f.geometry; if(!g) return;
       const coords = g.type.includes('Point') ? [g.coordinates] :
@@ -165,7 +165,7 @@ function fitToData(){
 async function loadAreas(){
   try{
     const gj = await fetchJSON('Data/Areas.geojson');
-    miniMap.addSource('areas',{type:'geojson',data:gj});
+    miniMap.addSource('areas',{type:'geojson',Data:gj});
     miniMap.addLayer({id:'areas-fill',type:'fill',source:'areas',paint:{'fill-color':'#93c5fd','fill-opacity':0.35}});
     miniMap.addLayer({id:'areas-line',type:'line',source:'areas',paint:{'line-color':'#60a5fa','line-width':1}});
   }catch(e){/* ok if missing */}
@@ -185,12 +185,12 @@ function updateKPIs(){
 function initCharts(){
   donut = new Chart(document.getElementById('donut'),{
     type:'doughnut',
-    data:{labels:[],datasets:[{data:[],backgroundColor:[],borderWidth:0}]},
+    Data:{labels:[],Datasets:[{Data:[],backgroundColor:[],borderWidth:0}]},
     options:{plugins:{legend:{position:'bottom'}}}
   });
   bar = new Chart(document.getElementById('bar'),{
     type:'bar',
-    data:{labels:[],datasets:[{label:'Features',data:[],backgroundColor:[]}]},
+    Data:{labels:[],Datasets:[{label:'Features',Data:[],backgroundColor:[]}]},
     options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true}}}
   });
 }
@@ -200,18 +200,18 @@ function updateCharts(){
   const byGroup = {};
   active.forEach(({count,group})=>{byGroup[group]=(byGroup[group]||0)+count;});
   const labels = Object.keys(byGroup);
-  donut.data.labels = labels;
-  donut.data.datasets[0].data = labels.map(l=>byGroup[l]);
-  donut.data.datasets[0].backgroundColor = labels.map(l=>colorFor(l));
+  donut.Data.labels = labels;
+  donut.Data.Datasets[0].Data = labels.map(l=>byGroup[l]);
+  donut.Data.Datasets[0].backgroundColor = labels.map(l=>colorFor(l));
   donut.update();
 
   // bar: top 12 active layers
   const rows = [...active.entries()].map(([file,rec])=>({
     name: humanName(file), count: rec.count, color: colorFor(rec.group)
   })).sort((a,b)=>b.count-a.count).slice(0,12);
-  bar.data.labels = rows.map(r=>r.name);
-  bar.data.datasets[0].data = rows.map(r=>r.count);
-  bar.data.datasets[0].backgroundColor = rows.map(r=>r.color);
+  bar.Data.labels = rows.map(r=>r.name);
+  bar.Data.Datasets[0].Data = rows.map(r=>r.count);
+  bar.Data.Datasets[0].backgroundColor = rows.map(r=>r.color);
   bar.update();
 }
 
@@ -222,3 +222,4 @@ function updateCharts(){
   buildChips();
   loadAreas();
 })();
+
